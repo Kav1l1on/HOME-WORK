@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Скалярний добуток</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --text: #1f2430;
+    --muted: #6b7280;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --border: #d9dde7;
+    --error: #dc2626;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12141b;
+      --card: #1c1f2a;
+      --text: #e6e8ee;
+      --muted: #9aa1b2;
+      --accent: #818cf8;
+      --accent-hover: #a5b4fc;
+      --border: #333849;
+      --error: #f87171;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .card {
+    max-width: 640px;
+    margin: 0 auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  h1 { margin: 0 0 4px; font-size: 1.5rem; }
+  .subtitle { margin: 0 0 20px; color: var(--muted); }
+  label { font-weight: 600; display: block; margin-bottom: 6px; }
+  .row { margin-bottom: 18px; }
+  select, input {
+    font: inherit;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .vector {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .vector input { width: 80px; text-align: center; }
+  .vector .name { font-weight: 700; width: 28px; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    cursor: pointer;
+    background: var(--accent);
+    color: #fff;
+  }
+  button:hover { background: var(--accent-hover); }
+  button.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+  .result {
+    margin-top: 22px;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    display: none;
+  }
+  .result.show { display: block; }
+  .result .big { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+  .result p { margin: 8px 0; overflow-wrap: anywhere; }
+  .error { color: var(--error); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Калькулятор скалярного добутку</h1>
+  <p class="subtitle">a · b = a₁b₁ + a₂b₂ + … + aₙbₙ</p>
+
+  <div class="row">
+    <label for="dim">Розмірність векторів</label>
+    <select id="dim">
+      <option value="2">2</option>
+      <option value="3" selected>3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+    </select>
+  </div>
+
+  <div class="row">
+    <label>Вектор a</label>
+    <div class="vector" id="vecA"></div>
+  </div>
+
+  <div class="row">
+    <label>Вектор b</label>
+    <div class="vector" id="vecB"></div>
+  </div>
+
+  <div class="buttons">
+    <button id="calc">Обчислити</button>
+    <button id="clear" class="secondary">Очистити</button>
+  </div>
+
+  <div class="result" id="result"></div>
+</div>
+
+<script>
+  const dimSelect = document.getElementById("dim");
+  const vecA = document.getElementById("vecA");
+  const vecB = document.getElementById("vecB");
+  const result = document.getElementById("result");
+
+  function buildInputs(container, name) {
+    const n = Number(dimSelect.value);
+    const old = [...container.querySelectorAll("input")].map(i => i.value);
+    container.innerHTML = `<span class="name">${name} =</span>`;
+    for (let i = 0; i < n; i++) {
+      const input = document.createElement("input");
+      input.type = "number";
+      input.step = "any";
+      input.placeholder = `${name}${i + 1}`;
+      input.value = old[i] ?? "";
+      container.appendChild(input);
+    }
+  }
+
+  function readVector(container) {
+    return [...container.querySelectorAll("input")].map(i => i.value.trim() === "" ? NaN : Number(i.value));
+  }
+
+  function fmt(x) {
+    return Number.isInteger(x) ? String(x) : String(Math.round(x * 10000) / 10000);
+  }
+
+  function wrap(x) {
+    return x < 0 ? `(${fmt(x)})` : fmt(x);
+  }
+
+  function calculate() {
+    const a = readVector(vecA);
+    const b = readVector(vecB);
+    result.classList.add("show");
+
+    if (a.some(isNaN) || b.some(isNaN)) {
+      result.innerHTML = `<p class="error">Заповніть усі координати числами.</p>`;
+      return;
+    }
+
+    const dot = a.reduce((s, ai, i) => s + ai * b[i], 0);
+    const lenA = Math.sqrt(a.reduce((s, x) => s + x * x, 0));
+    const lenB = Math.sqrt(b.reduce((s, x) => s + x * x, 0));
+
+    const products = a.map((ai, i) => `${wrap(ai)}·${wrap(b[i])}`).join(" + ");
+    const values = a.map((ai, i) => wrap(ai * b[i])).join(" + ");
+
+    let angleText;
+    if (lenA === 0 || lenB === 0) {
+      angleText = "Кут не визначено (один із векторів нульовий).";
+    } else {
+      const cos = Math.max(-1, Math.min(1, dot / (lenA * lenB)));
+      const deg = Math.acos(cos) * 180 / Math.PI;
+      let relation = "";
+      if (Math.abs(dot) < 1e-12) relation = " — вектори перпендикулярні";
+      else if (dot > 0) relation = " — кут гострий";
+      else relation = " — кут тупий";
+      angleText = `cos φ = ${fmt(cos)}, φ ≈ ${fmt(deg)}°${relation}`;
+    }
+
+    result.innerHTML = `
+      <p class="big">a · b = ${fmt(dot)}</p>
+      <p><b>Розв'язання:</b> ${products} = ${values} = ${fmt(dot)}</p>
+      <p>|a| = ${fmt(lenA)}, |b| = ${fmt(lenB)}</p>
+      <p>${angleText}</p>
+    `;
+  }
+
+  function clearAll() {
+    document.querySelectorAll(".vector input").forEach(i => i.value = "");
+    result.classList.remove("show");
+  }
+
+  dimSelect.addEventListener("change", () => {
+    buildInputs(vecA, "a");
+    buildInputs(vecB, "b");
+    result.classList.remove("show");
+  });
+  document.getElementById("calc").addEventListener("click", calculate);
+  document.getElementById("clear").addEventListener("click", clearAll);
+  document.addEventListener("keydown", e => { if (e.key === "Enter") calculate(); });
+
+  buildInputs(vecA, "a");
+  buildInputs(vecB, "b");
+</script>
+</body>
+</html>

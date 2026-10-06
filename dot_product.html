@@ -63,6 +63,17 @@
   }
   .vector input { width: 80px; text-align: center; }
   .vector .name { font-weight: 700; width: 28px; }
+  select, input, button { font-size: 16px; min-height: 44px; }
+  @media (max-width: 480px) {
+    body { padding: 12px; }
+    .card { padding: 16px; border-radius: 12px; }
+    h1 { font-size: 1.25rem; }
+    .vector { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .vector .name { display: none; }
+    .vector input { width: 100%; }
+    select { width: 100%; }
+    .buttons button { flex: 1; }
+  }
   button {
     font: inherit;
     font-weight: 600;
@@ -140,8 +151,9 @@
     container.innerHTML = `<span class="name">${name} =</span>`;
     for (let i = 0; i < n; i++) {
       const input = document.createElement("input");
-      input.type = "number";
-      input.step = "any";
+      input.type = "text";
+      input.inputMode = "decimal";
+      input.autocomplete = "off";
       input.placeholder = `${name}${i + 1}`;
       input.value = old[i] ?? "";
       container.appendChild(input);
@@ -149,7 +161,10 @@
   }
 
   function readVector(container) {
-    return [...container.querySelectorAll("input")].map(i => i.value.trim() === "" ? NaN : Number(i.value));
+    return [...container.querySelectorAll("input")].map(i => {
+      const v = i.value.trim().replace(",", ".");
+      return v === "" ? NaN : Number(v);
+    });
   }
 
   function fmt(x) {
@@ -164,6 +179,7 @@
     const a = readVector(vecA);
     const b = readVector(vecB);
     result.classList.add("show");
+    document.activeElement.blur();
 
     if (a.some(isNaN) || b.some(isNaN)) {
       result.innerHTML = `<p class="error">Заповніть усі координати числами.</p>`;
@@ -198,6 +214,10 @@
     `;
   }
 
+  function scrollToResult() {
+    result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
   function clearAll() {
     document.querySelectorAll(".vector input").forEach(i => i.value = "");
     result.classList.remove("show");
@@ -208,9 +228,9 @@
     buildInputs(vecB, "b");
     result.classList.remove("show");
   });
-  document.getElementById("calc").addEventListener("click", calculate);
+  document.getElementById("calc").addEventListener("click", () => { calculate(); scrollToResult(); });
   document.getElementById("clear").addEventListener("click", clearAll);
-  document.addEventListener("keydown", e => { if (e.key === "Enter") calculate(); });
+  document.addEventListener("keydown", e => { if (e.key === "Enter") { calculate(); scrollToResult(); } });
 
   buildInputs(vecA, "a");
   buildInputs(vecB, "b");
